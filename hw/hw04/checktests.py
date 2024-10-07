@@ -159,9 +159,9 @@ def createDoc(year, month, textFile, JSON_URL, prepend=None, all=False, taskName
         createreport.combineDocParts(textFile, wiredStats, wiredPNGName, wiredFileName)
         #clean up, delete created png
         os.remove(wiredPNGName)
-        return wiredFileName
     else: #if there was no data for the year/month pair
         print(wiredFileName + " was not created because there is no data for the specified period")
+        wiredFileName = None
 
     if wifiSubset:
         #create PNG for daily average data
@@ -177,10 +177,10 @@ def createDoc(year, month, textFile, JSON_URL, prepend=None, all=False, taskName
         createreport.combineDocParts(textFile, wifiStats, wifiPNGName, wifiFileName)
         #delete created pngs
         os.remove(wifiPNGName)
-        return wifiFileName
     else:
         print(wifiFileName + " was not created because there is no data for the specified period")
-    return None
+        wifiFileName = None
+    return wiredFileName, wifiFileName
 
 
 if __name__ == "__main__":
@@ -194,5 +194,5 @@ if __name__ == "__main__":
     #get the entered arguments
     args = parser.parse_args()
 
-    createDoc(args.year, args.month, args.textFile, args.JSON_URL, args.all)
+    createDoc(args.year, args.month, args.textFile, args.JSON_URL, all=args.all)
 
