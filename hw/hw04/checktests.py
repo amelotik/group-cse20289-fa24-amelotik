@@ -95,7 +95,23 @@ def dictToString(dictionary):
             string = string + str(key) + ": " + str(value) + "\n"
     return string
 
-def runHW3Tests(year, month, textfile, data, all=false):
+def createDoc(year, month, textFile, JSON_URL, prepend="", all=False):
+    #open and load JSON data, unless url cannot be found
+    try:
+        jsonData = urlopen(JSON_URL)
+    except HTTPError:
+        print("HTTPError: " + JSON_URL + "could not be found")
+        sys.exit(1) 
+    #if error occurs with JSON, let user know and exit
+    try:
+        data = json.loads(jsonData.read())
+    except json.JSONDecodeError:
+        print("JSONDecodeError: The URL did not fetch any data")
+        sys.exit(1)
+    #test is textFile for word doc is valid
+    if not os.path.isfile(textFile):
+        print("Error: " + textFile + " cannot be found")
+        sys.exit(1)
     #use a dictionary to find the number of days in specified month
     numDays = {1: 31, 2: 29, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
     #make the file names, always with 2 nums for month
@@ -110,13 +126,13 @@ def runHW3Tests(year, month, textfile, data, all=false):
     if (all):
         wiredSubset = [x for x in filteredData if x['interface'] == "eth0"]
         wifiSubset = [x for x in filteredData if x['interface'] == "wlan0"]
-        wiredFileName = "All-Wired.docx"
-        wifiFileName = "All-WiFi.docx"
+        wiredFileName = prepend + "All-Wired.docx"
+        wifiFileName = prepend + "All-WiFi.docx"
     else:
         wiredSubset = filterSubset(filteredData, month, year, "eth0")
         wifiSubset = filterSubset(filteredData, month, year, "wlan0")
-        wiredFileName = str(year) + "-" + strMonth + "-Wired.docx"
-        wifiFileName = str(year) + "-" + strMonth + "-WiFi.docx"
+        wiredFileName = prepend + str(year) + "-" + strMonth + "-Wired.docx"
+        wifiFileName = prepend + str(year) + "-" + strMonth + "-WiFi.docx"
 
     #check if the files already exist and inform user if so
     if os.path.isfile(wiredFileName):
@@ -131,7 +147,7 @@ def runHW3Tests(year, month, textfile, data, all=false):
         if (all):
             wiredAvg = plotdata.dailyAverage(wiredSubset, 31)
         else:
-            wiredAvg = plotdata.dailyAverage(wiredSubset, numDays[args.month])
+            wiredAvg = plotdata.dailyAverage(wiredSubset, numDays[month])
         plotdata.createPlot(wiredAvg, wiredPNGName)
         #make stat dictionary for doc table
         wiredStats = calcStats(wiredSubset, "eth0")
@@ -139,6 +155,7 @@ def runHW3Tests(year, month, textfile, data, all=false):
         createreport.combineDocParts(textFile, wiredStats, wiredPNGName, wiredFileName)
         #clean up, delete created png
         os.remove(wiredPNGName)
+        return wiredFileName
     else: #if there was no data for the year/month pair
         print(wiredFileName + " was not created because there is no data for the specified period")
 
@@ -156,8 +173,10 @@ def runHW3Tests(year, month, textfile, data, all=false):
         createreport.combineDocParts(textFile, wifiStats, wifiPNGName, wifiFileName)
         #delete created pngs
         os.remove(wifiPNGName)
+        return wifiFileName
     else:
         print(wifiFileName + " was not created because there is no data for the specified period")
+    return None
 
 
 if __name__ == "__main__":
@@ -170,22 +189,6 @@ if __name__ == "__main__":
     parser.add_argument("--all", help="ignore month/year and enumerate across all times", action="store_true", default=False)
     #get the entered arguments
     args = parser.parse_args()
-    #open and load JSON data, unless url cannot be found
-    try:
-        jsonURL = urlopen(args.JSON_URL)
-    except HTTPError:
-        print("HTTPError: " + args.JSON_URL + "could not be found")
-        sys.exit(1) 
-    #if error occurs with JSON, let user know and exit
-    try:
-        data = json.loads(jsonURL.read())
-    except json.JSONDecodeError:
-        print("JSONDecodeError: The URL did not fetch any data")
-        sys.exit(1)
-    #test is textFile for word doc is valid
-    if not os.path.isfile(args.textFile):
-        print("Error: " + args.textFile + " cannot be found")
-        sys.exit(1)
 
-    runHW3Tests(args.year, args.month, args.textfile, data, args.all)
+    createDoc(args.year, args.month, args.textFile, args.JSON_URL, args.all)
 
