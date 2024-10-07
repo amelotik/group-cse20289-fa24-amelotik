@@ -8,16 +8,17 @@ from spire.doc import *
 from spire.doc.common import *
 import checktests
 import concurrent.futures
+import os.path
 
 def parseYAML(yamlName):
     try:
         with open(yamlName, 'r') as f:
             data = yaml.safe_load(f)
-    except:
+        tasks = data.get('tasks')
+    except Exception as e:
         print("Error: " + yamlName + " could not be loaded")
         return None
 
-    tasks = data.get('tasks')
     numTasks = 0
     
     for currTask in tasks:
@@ -44,12 +45,20 @@ def wordToPDF(wordDoc, pdfFile):
     document.Close()
     
 def fullProcess(taskDict):
-    docName = checktests.createDoc(taskDict['Year'], taskDict['Month'], taskDict['StartText'], taskDict['URL'], taskDict['Prepend'])
-    if docName == None:
-        print("Error: No doc was created")
-    else:
-        pdfName = docName.split(".docx")[0] + ".pdf"
-        wordToPDF(docName, pdfName)
+    try:
+        taskName = list(taskDict.keys())[0]
+        taskDict = list(taskDict.values())[0]
+        docName = checktests.createDoc(taskDict['Year'], taskDict['Month'], taskDict['StartText'], taskDict['URL'], taskDict['Prepend'], taskName=taskName)
+        if docName == None:
+            print("Error: No doc was created")
+        else:
+            pdfName = docName.split(".docx")[0] + ".pdf"
+
+            if os.path.isfile(pdfName):
+                print("Warning: " + pdfName + " already exists. It will be overwritten if sufficient data for the period is found")
+            wordToPDF(docName, pdfName)
+    except Exception as e:
+        print("Error processing task: " + str(e))
     
 
 parser = argparse.ArgumentParser()
@@ -58,9 +67,13 @@ parser.add_argument("--multi", type=int, choices=range(1,5), help="number of pro
 args = parser.parse_args()
 
 tasksDict = parseYAML(args.yamlName)
+
 if tasksDict != None:
-    #fullProcess(list(infoDict[0].values())[0])
     if args.multi:
         with concurrent.futures.ProcessPoolExecutor(args.multi) as executor:
-        results = executor.map(fullProcess, tasksDict)
-
+            for result in executor.map(fullProcess, tasksDict):
+                pass
+    else:
+        for task in tasksDict:
+            fullProcess(task)
+                

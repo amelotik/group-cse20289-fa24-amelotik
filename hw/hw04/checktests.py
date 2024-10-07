@@ -95,7 +95,7 @@ def dictToString(dictionary):
             string = string + str(key) + ": " + str(value) + "\n"
     return string
 
-def createDoc(year, month, textFile, JSON_URL, prepend="", all=False):
+def createDoc(year, month, textFile, JSON_URL, prepend=None, all=False, taskName=""):
     #open and load JSON data, unless url cannot be found
     try:
         jsonData = urlopen(JSON_URL)
@@ -110,8 +110,12 @@ def createDoc(year, month, textFile, JSON_URL, prepend="", all=False):
         sys.exit(1)
     #test is textFile for word doc is valid
     if not os.path.isfile(textFile):
+
         print("Error: " + textFile + " cannot be found")
         sys.exit(1)
+    #check if prepend was specified and if not, set to default format
+    if prepend == None:
+        prepend = str(year)+"-"+str(month)
     #use a dictionary to find the number of days in specified month
     numDays = {1: 31, 2: 29, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
     #make the file names, always with 2 nums for month
@@ -126,13 +130,13 @@ def createDoc(year, month, textFile, JSON_URL, prepend="", all=False):
     if (all):
         wiredSubset = [x for x in filteredData if x['interface'] == "eth0"]
         wifiSubset = [x for x in filteredData if x['interface'] == "wlan0"]
-        wiredFileName = prepend + "All-Wired.docx"
-        wifiFileName = prepend + "All-WiFi.docx"
+        wiredFileName = "All-Wired.docx"
+        wifiFileName = "All-WiFi.docx"
     else:
         wiredSubset = filterSubset(filteredData, month, year, "eth0")
         wifiSubset = filterSubset(filteredData, month, year, "wlan0")
-        wiredFileName = prepend + str(year) + "-" + strMonth + "-Wired.docx"
-        wifiFileName = prepend + str(year) + "-" + strMonth + "-WiFi.docx"
+        wiredFileName = prepend + "-Wired.docx"
+        wifiFileName = prepend + "-WiFi.docx"
 
     #check if the files already exist and inform user if so
     if os.path.isfile(wiredFileName):
@@ -143,7 +147,7 @@ def createDoc(year, month, textFile, JSON_URL, prepend="", all=False):
     #if the subset is not empty, continue on creating the stats and doc
     if wiredSubset:
         #create png
-        wiredPNGName = "wiredAvg.png"
+        wiredPNGName = taskName + "wiredAvg.png"
         if (all):
             wiredAvg = plotdata.dailyAverage(wiredSubset, 31)
         else:
@@ -161,7 +165,7 @@ def createDoc(year, month, textFile, JSON_URL, prepend="", all=False):
 
     if wifiSubset:
         #create PNG for daily average data
-        wifiPNGName = "wifiAvg.png"
+        wifiPNGName = taskName + "wifiAvg.png"
         if (all):
             wifiAvg = plotdata.dailyAverage(wifiSubset, 31)
         else:
